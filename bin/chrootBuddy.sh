@@ -90,8 +90,6 @@ CHROOT_USER=$USER
 CHROOT_CONF="/etc/schroot/chroot.d/$CHROOT_NAME.conf"
 CHROOT_GROUP=$GROUP
 
-#ENET requires nvidia-cuda-toolkit=8.0.44-3,libthrust-dev=1.8.1-1
-
 PACKAGES=$(cat "$packages"/base.packages),
 if [ "${PACKAGES_LIST:-unset}" != 'unset' ]; then
 	for p in ${PACKAGES_LIST}; do
