@@ -12,6 +12,7 @@ USER="root"
 GROUP="chroot"
 
 me=$(readlink -f "$0" | cut -d \. -f 1)
+here="${me%/*}"
 share=$(echo $me | sed -e "s/bin/share/g")
 packages="$share.packages"
 
@@ -185,6 +186,10 @@ cat > "$CHROOT_HOME/$SCRIPT_2ND_STAGE" <<EOF
 
 set -x
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
+
+if [ -f "$here/$NAME"_sources ]; then
+cat "$here/$NAME"_sources >> "$CHROOT_HOME/$SCRIPT_2ND_STAGE"
+fi
 
 apt update
 apt full-upgrade -y
