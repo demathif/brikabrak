@@ -6,7 +6,7 @@ VERBOSE=false
 HELP=false
 PREFIX="$(pwd)/chroot"
 NAME="debian"
-RELEASE="testing"
+RELEASE="trusty"
 ARCH="amd64"
 USER="root"
 GROUP="chroot"
@@ -41,7 +41,7 @@ function log {
 function help {
 	cat <<EOF
 NAME:
-	$0 - Generate a debian chroot with pre-installed packages
+	$0 - Generate a $NAME chroot with pre-installed packages
 
 OPTIONS:
 	--verbose: Generate more logs
@@ -56,8 +56,9 @@ OPTIONS:
 	--packages: preinstalled packages (see $packages)
 
 EXAMPLE:
-	sudo ./chrootBuddy.sh  --verbose --name enet --release stable --prefix /srv/chroot --arch amd64 --extra cuda --packages enet
-	sudo ./chrootBuddy.sh  --verbose --name epoc  --release stable --prefix /srv/chroot --arch amd64 --extra "cuda extra" --packages "opencv ssd enet"
+	sudo ./bin/chrootBuddy.sh  --verbose --name enet --release stable --prefix /srv/chroot --arch amd64 --extra cuda --packages enet
+	sudo ./bin/chrootBuddy.sh  --verbose --name epoc --release stable --prefix /srv/chroot --arch amd64 --extra "cuda extra" --packages "opencv ssd enet"
+	sudo ./bin/chrootBuddy.sh  --verbose --name trusty --release trusty --prefix /srv/chroot --arch amd64
 EOF
 	exit 0
 }
@@ -74,6 +75,7 @@ case $RELEASE in
 	"stable") EXTRA_RELEASE="testing";;
 	"testing") EXTRA_RELEASE="unstable";;
 	"unstable") EXTRA_RELEASE="experimental";;
+	"trusty") EXTRA_RELEASE="xenial";;
 	*) echo 'Error while defining the distribution'; exit 1;;
 esac
 
@@ -84,7 +86,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 CHROOT_ROOT="$PREFIX"
-MIRROR=http://ftp.fr.debian.org/debian/
+#MIRROR=http://ftp.fr.debian.org/debian/
+MIRROR=http://archive.ubuntu.com/ubuntu/
 CHROOT_NAME=$NAME
 CHROOT_HOME=$CHROOT_ROOT/$CHROOT_NAME
 CHROOT_USER=$USER
@@ -111,7 +114,7 @@ fi
 SCRIPT_2ND_STAGE=/root/2ndstage_$CHROOT_NAME
 
 set -x
-debootstrap --include="$PACKAGES" --arch="$ARCH" "$RELEASE" "$CHROOT_HOME" "$MIRROR"
+debootstrap --include="$PACKAGES" --variant=buildd --arch="$ARCH" "$RELEASE" "$CHROOT_HOME" "$MIRROR"
 
 [ $? == 0 ] || exit 1
 
@@ -119,7 +122,7 @@ if [ ! -f "$CHROOT_CONF"  ]; then
 log "Creating dedicated schroot conf file $CHROOT_CONF "
 cat > "$CHROOT_CONF" <<EOF
 [$CHROOT_NAME]
-description=Debian $RELEASE $ARCH
+description=$NAME $RELEASE $ARCH
 directory=$CHROOT_HOME
 preserve-environment=true
 root-groups=root
@@ -145,7 +148,9 @@ sed -i  -e 's/#\/dev\/shm/\/dev\/shm/' "/etc/schroot/$NAME/fstab"
 
 log "Configuring release sources... "
 
-{ echo "deb $MIRROR $RELEASE main contrib non-free";echo "deb-src $MIRROR $RELEASE main contrib non-free"; echo "deb $MIRROR $EXTRA_RELEASE main contrib non-free"; echo "deb-src $MIRROR $EXTRA_RELEASE main contrib non-free";} > "$CHROOT_HOME/etc/apt/sources.list"
+#{ echo "deb $MIRROR $RELEASE main contrib non-free";echo "deb-src $MIRROR $RELEASE main contrib non-free"; echo "deb $MIRROR $EXTRA_RELEASE main contrib non-free"; echo "deb-src $MIRROR $EXTRA_RELEASE main contrib non-free";} >> "$CHROOT_HOME/etc/apt/sources.list"
+
+{ echo "deb $MIRROR $RELEASE main restricted"; echo "deb $MIRROR $RELEASE-updates main restricted"; echo "deb $MIRROR $RELEASE universe"; echo "deb $MIRROR $RELEASE-updates universe"; echo "deb $MIRROR $RELEASE multiverse"; echo "deb $MIRROR $RELEASE-updates multiverse";} >> "$CHROOT_HOME/etc/apt/sources.list"
 
 
 log "Configuring packets pinning... "
@@ -175,12 +180,12 @@ Acquire::ftp::Proxy "$ftp_proxy";
 EOF
 fi
 
-log "Configuring locales... "
-sed -i  -e   's/# en_US/en_US/' "$CHROOT_HOME/etc/locale.gen"
-cat >> "$CHROOT_HOME/etc/default/locale" <<EOF
-LANG=en_US
-LANGUAGE="en_US:en"
-EOF
+#log "Configuring locales... "
+#sed -i  -e   's/# en_US/en_US/' "$CHROOT_HOME/etc/locale.gen"
+#cat >> "$CHROOT_HOME/etc/default/locale" <<EOF
+#LANG=en_US
+#LANGUAGE="en_US:en"
+#EOF
 
 
 log "Configuring 2nd stage script... "
